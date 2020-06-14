@@ -190,8 +190,14 @@ impl OfflineSession {
         let mut events = Vec::new();
         let OfflineSession { mut state } = self;
 
+        //When it re-sends any PUBLISH packets, it MUST re-send them in the order
+        // in which the original PUBLISH packets were sent
+        // (this applies to QoS 1 and QoS 2 messages) [MQTT-4.6.0-1]
+        let mut waiting_to_be_acked: Vec<_> = state.waiting_to_be_acked.iter().collect();
+        waiting_to_be_acked.sort_by_key(|x| x.0);
+
         // Handle the outstanding QoS 1 and QoS 2 packets
-        for (id, publish) in &state.waiting_to_be_acked {
+        for (id, publish) in waiting_to_be_acked {
             let to_publish = match publish {
                 Publish::QoS12(id, p) => {
                     let pidq = match p.packet_identifier_dup_qos {
@@ -215,12 +221,6 @@ impl OfflineSession {
 
             debug!("resending QoS12 packet {}", id);
             events.push(ClientEvent::PublishTo(to_publish));
-        }
-
-        // Handle the outstanding QoS 0 packets
-        for (id, publish) in &state.waiting_to_be_acked_qos0 {
-            debug!("resending QoS0 packet {}", id);
-            events.push(ClientEvent::PublishTo(publish.clone()));
         }
 
         // Handle the outstanding QoS 2 packets in the second stage of transmission
