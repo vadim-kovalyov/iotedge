@@ -5,14 +5,16 @@ pub use authentication::{
     authenticate_fn_ok, AuthenticationContext, Authenticator, Certificate, DefaultAuthenticator,
 };
 pub use authorization::{
-    authorize_fn_ok, Activity, Authorization, Authorizer, Connect, DefaultAuthorizer, Operation,
-    Publication, Publish, Subscribe,
+    authorize_fn_ok, Activity, Authorization, Authorizer, Connect, DefaultAuthorizer,
+    MakeAuthorizer, Operation, Publication, Publish, Subscribe,
 };
 
 use std::fmt::{Display, Formatter, Result as FmtResult};
 
+use serde::{Deserialize, Serialize};
+
 /// Authenticated MQTT client identity.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 pub enum AuthId {
     /// Identity for anonymous client.
     Anonymous,

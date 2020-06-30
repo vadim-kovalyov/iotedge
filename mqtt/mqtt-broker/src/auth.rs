@@ -12,15 +12,22 @@ pub fn authorizer() -> impl Authorizer {
 
 #[cfg(feature = "edgehub")]
 mod imp {
-    use mqtt_edgehub::auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthorizer};
+    use std::error::Error as StdError;
 
-    pub(super) fn authenticator() -> EdgeHubAuthenticator {
-        let url = "http://localhost:7120/authenticate/".into();
-        EdgeHubAuthenticator::new(url)
+    use mqtt_broker_core::auth::{authenticate_fn_ok, AuthId, Authenticator, MakeAuthorizer};
+    use mqtt_opa_wasm::{MakeOpaAuthorizer, OpaAuthorizer};
+
+    pub(super) fn authenticator() -> impl Authenticator<Error = Box<dyn StdError>> {
+        authenticate_fn_ok(|_| Some(AuthId::Anonymous))
     }
 
-    pub(super) fn authorizer() -> LocalAuthorizer<EdgeHubAuthorizer> {
-        LocalAuthorizer::new(EdgeHubAuthorizer::default())
+    pub(super) fn authorizer() -> OpaAuthorizer {
+        let wasm_bytes = opa_go::wasm::compile("data.edgehub.allow", "policy.rego").unwrap();
+
+        MakeOpaAuthorizer::from_bytes(wasm_bytes)
+            .unwrap()
+            .make_authorizer()
+            .unwrap()
     }
 }
 

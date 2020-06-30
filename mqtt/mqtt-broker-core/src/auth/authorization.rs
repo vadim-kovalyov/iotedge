@@ -1,9 +1,30 @@
 #![allow(dead_code)]
 use std::{convert::Infallible, error::Error as StdError};
 
+use serde::{Deserialize, Serialize};
+
 use mqtt3::proto;
 
 use crate::{ClientId, ClientInfo};
+
+pub trait MakeAuthorizer {
+    type Authorizer: Authorizer;
+    type Error: StdError + Send;
+
+    fn make_authorizer(self) -> Result<Self::Authorizer, Self::Error>;
+}
+
+impl<F> MakeAuthorizer for F
+where
+    F: Fn(Activity) -> Result<Authorization, Infallible> + Sync,
+{
+    type Authorizer = Self;
+    type Error = Infallible;
+
+    fn make_authorizer(self) -> Result<Self::Authorizer, Self::Error> {
+        Ok(self)
+    }
+}
 
 /// A trait to check a MQTT client permissions to perform some actions.
 pub trait Authorizer {
@@ -56,7 +77,18 @@ impl Authorizer for DefaultAuthorizer {
     }
 }
 
+impl MakeAuthorizer for DefaultAuthorizer {
+    type Authorizer = Self;
+    type Error = Infallible;
+
+    fn make_authorizer(self) -> Result<Self::Authorizer, Self::Error> {
+        Ok(self)
+    }
+}
+
 /// Describes a client activity to authorized.
+#[derive(Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub struct Activity {
     client_id: ClientId,
     client_info: ClientInfo,
@@ -90,6 +122,8 @@ impl Activity {
 }
 
 /// Describes a client operation to be authorized.
+#[derive(Serialize, Deserialize)]
+#[serde(tag = "type")]
 pub enum Operation {
     Connect(Connect),
     Publish(Publish),
@@ -114,19 +148,17 @@ impl Operation {
 }
 
 /// Represents a client attempt to connect to the broker.
-pub struct Connect {
-    will: Option<Publication>,
-}
+#[derive(Serialize, Deserialize)]
+pub struct Connect;
 
 impl From<proto::Connect> for Connect {
-    fn from(connect: proto::Connect) -> Self {
-        Self {
-            will: connect.will.map(Into::into),
-        }
+    fn from(_connect: proto::Connect) -> Self {
+        Self
     }
 }
 
 /// Represents a publication description without payload to be used for authorization.
+#[derive(Serialize, Deserialize)]
 pub struct Publication {
     pub topic_name: String,
     pub qos: proto::QoS,
@@ -144,8 +176,15 @@ impl From<proto::Publication> for Publication {
 }
 
 /// Represents a client attempt to publish a new message on a specified MQTT topic.
+#[derive(Serialize, Deserialize)]
 pub struct Publish {
-    pub publication: Publication,
+    publication: Publication,
+}
+
+impl Publish {
+    pub fn publication(&self) -> &Publication {
+        &self.publication
+    }
 }
 
 impl From<proto::Publish> for Publish {
@@ -165,6 +204,7 @@ impl From<proto::Publish> for Publish {
 }
 
 /// Represents a client attempt to subscribe to a specified MQTT topic in order to received messages.
+#[derive(Serialize, Deserialize)]
 pub struct Subscribe {
     topic_filter: String,
     qos: proto::QoS,

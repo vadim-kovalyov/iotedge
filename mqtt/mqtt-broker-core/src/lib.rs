@@ -42,7 +42,7 @@ impl Display for ClientId {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClientInfo {
     peer_addr: SocketAddr,
     auth_id: AuthId,

@@ -36,6 +36,8 @@ uuid = { version = "0.8", features = ["v4"] }
 mqtt3 = { path = "../mqtt3", features = ["serde1"] }
 mqtt-edgehub = { path = "../mqtt-edgehub", optional = true }
 mqtt-broker-core = { path = "../mqtt-broker-core" }
+mqtt-opa-wasm = { path = "../mqtt-opa-wasm", optional = true }
+opa-go = { path = "../../../policy/opa-go" }
 
 [dev-dependencies]
 atty = "0.2"
@@ -76,7 +78,7 @@ required-features = ["rand", "criterion", "__internal_broker_callbacks", "tokio/
 
 [features]
 default = ["edgehub"]
-edgehub = ["mqtt-edgehub"]
+edgehub = ["mqtt-edgehub", "mqtt-opa-wasm"]
 benches = ["rand", "criterion", "__internal_broker_callbacks", "tokio/rt-threaded"]
 
 # Internal (PRIVATE!) features used to aid testing.
