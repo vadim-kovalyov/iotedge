@@ -1,0 +1,45 @@
+{
+    "client_id": "client_a",
+    "client_info": {
+        "peer_addr": "127.0.0.1:8080",
+        "auth_id": {
+            "Identity": "client_a"
+        }
+    },
+    "operation": {
+        "type": "Connect"
+    }
+}
+
+{
+    "client_id": "client_a",
+    "client_info": {
+        "peer_addr": "127.0.0.1:8080",
+        "auth_id": {
+            "Identity": "client_a"
+        }
+    },
+    "operation": {
+        "type": "Publish",
+        "publication": {
+            "topic_name": "topic/a",
+            "qos": "AtLeastOnce",
+            "retain": false
+        }
+    }
+}
+
+{
+    "client_id": "client_a",
+    "client_info": {
+        "peer_addr": "127.0.0.1:8080",
+        "auth_id": {
+            "Identity": "client_a"
+        }
+    },
+    "operation": {
+        "type": "Subscribe",
+        "topic_filter": "topic/a/+",
+        "qos": "AtLeastOnce"
+    }
+}

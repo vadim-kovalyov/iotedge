@@ -490,7 +490,10 @@ where
             let activity = Activity::new(client_id.clone(), client_info, operation);
             match self.authorizer.authorize(activity) {
                 Ok(Authorization::Allowed) => {
-                    debug!("client {} successfully authorized", client_id);
+                    debug!(
+                        "client {} successfully authorized to publish to topic {}",
+                        client_id, publish.topic_name
+                    );
                     let (maybe_publication, maybe_event) = session.handle_publish(publish)?;
 
                     if let Some(event) = maybe_event {

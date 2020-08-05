@@ -7,6 +7,3 @@ members = [
     "mqtt-opa-wasm",
     "mqttd",
 ]
-
-[profile.release]
-debug = true

@@ -11,4 +11,4 @@ tracing = "0.1"
 
 mqtt-broker-core = { path = "../mqtt-broker-core" }
 
-opa-wasm = { path = "../../../policy/opa-wasm" }
+opa-wasm = { path = "../policy/opa-wasm" }

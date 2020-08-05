@@ -1,0 +1,24 @@
+{
+    "topic_forbidden_prefix": ["$", "#"],
+    "iothub_topic_prefix": ["$iothub/", "$edgehub/"],
+    "iothub_topic_patterns": [
+        "$edgehub/clients/{}/messages/events",
+        "$iothub/clients/{}/messages/events",
+        "$edgehub/clients/{}/twin/get",
+        "$iothub/clients/{}/twin/get"
+    ],
+    
+    "allowed_clients": ["device_1", "device_2"],
+    "denied_clients": ["bad_device"],
+    "default_allowed_clients": false,
+    
+    "allowed_topic_map": {
+        "device_1": ["home/1", "floor/2"]
+    },
+    "default_allowed_topic_map": false,
+    
+    "allowed_device_map": {
+        "home/": ["device_1", "device_2"]
+    },
+    "default_allowed_device_map": false
+}

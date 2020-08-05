@@ -2,7 +2,6 @@ use std::fmt;
 
 use mqtt_broker_core::auth::{Activity, Authorization, Authorizer, MakeAuthorizer};
 use opa_wasm::Policy;
-use tracing::warn;
 
 #[derive(Debug)]
 pub enum Error {}
@@ -56,11 +55,10 @@ impl Authorizer for OpaAuthorizer {
 
     fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error> {
         let value = self.policy.evaluate(&activity).unwrap();
-        warn!("Authorization received: {:?}", value);
         match value.try_into_set() {
             Ok(set) if !set.is_empty() => Ok(Authorization::Allowed),
             Ok(_) => Ok(Authorization::Forbidden(
-                "Authorization denied by policy".to_string(),
+                "Authorization denied by the policy".to_string(),
             )),
             Err(e) => Ok(Authorization::Forbidden(format!(
                 "Unable to evaluate policy {:?}",

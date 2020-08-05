@@ -1,0 +1,554 @@
+{
+    "allow": [
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        },
+        {
+            "identities": [
+                "contoso.azure-devices.net/sensor_a"
+            ],
+            "operation": [
+                "mqtt:publish"
+            ],
+            "resource": [
+                "events/alerts"
+            ]
+        }
+    ]
+}

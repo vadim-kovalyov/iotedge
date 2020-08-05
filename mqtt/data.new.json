@@ -1,0 +1,59 @@
+// substitution rules.
+// ${{client_id}} => client_id. This allows constructs such as "identity": "${{client_id}}", which means auth_id == client_id.
+// ${{any}} => mathces any auth_id. Alternative ${{auth_id}} or ${{idetity}}
+// ${{operation}}
+{
+    "allow": [
+        {
+            "identity": "${{client_id}}",
+            "operation": [
+                "connect"
+            ]
+        },
+        {
+            "identity": "prd-evg-iothub.azure-devices.net/devices/edge_1/module/my_module",
+            "operation": [
+                "publish"
+            ],
+            "resource": [
+                "telemetry/${{client_id}}",
+                "misc/foobar"
+            ]
+        },
+        {
+            "identity": "${{any}}",
+            "operation": [
+                "publish"
+            ],
+            "resource": [
+                "alerts/"
+            ]
+        }
+    ],
+    "deny": [
+        {
+            "identity": "prd-evg-iothub.azure-devices.net/devices/rogue_one",
+            "operation": [
+                "connect"
+            ]
+        },
+        {
+            "identity": "prd-evg-iothub.azure-devices.net/devices/edge_1/module/my_module",
+            "operation": [
+                "subscribe"
+            ],
+            "resource": [
+                "topic/forbidden"
+            ]
+        },
+        {
+            "identity": "${{any}}",
+            "operation": [
+                "subscribe"
+            ],
+            "resource": [
+                "$sys/"
+            ]
+        }
+    ]
+}
