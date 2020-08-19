@@ -9,22 +9,25 @@ use anyhow::Result;
 use workload_api_client::WorkloadAPIClient;
 use chrono::Utc;
 
-const PROXY_SERVER_TRUSTED_CA_PATH:&str = "trustedCA.crt";
-const PROXY_SERVER_CERT_PATH:&str = "server.crt"; 
-const PROXY_SERVER_PRIVATE_KEY_PATH:&str = "private_key.pem"; 
+const PROXY_SERVER_TRUSTED_CA_PATH:&str = "/app/trustedCA.crt";
+const PROXY_SERVER_CERT_PATH:&str = "/app/server.crt"; 
+const PROXY_SERVER_PRIVATE_KEY_PATH:&str = "/app/private_key.pem"; 
 
-
+//Check for expiry of certificates. If certificates are expired: rotate.
 pub fn start(runtime_cert_monitor: tokio::runtime::Handle, notify_certs_rotated: Arc<Notify>) {
     const NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS: Duration = Duration::from_secs(1);
     let mut cert_monitor = CertificateMonitor::new();
 
     loop{
-        runtime_cert_monitor.block_on(delay_for(NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS));
-        let mut need_notify = false;
+		runtime_cert_monitor.block_on(delay_for(NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS));
+		//If root cert has rotated, we need to notify the watchdog to restart nginx.
+		let mut need_notify = false;
+		//Check for rotation. If rotated then we notify.
         match cert_monitor.has_bundle_of_trust_rotated() {
             Ok((has_bundle_of_trust_rotated, trust_bundle)) => {
                 if has_bundle_of_trust_rotated == true
                 {
+					//If we have a new cert, we need to write it in file system
                     let result = utils::write_binary_to_file(trust_bundle.as_bytes(),PROXY_SERVER_TRUSTED_CA_PATH);
                     match result {
                         Err(err) => panic!("{:?}", err),
@@ -36,16 +39,19 @@ pub fn start(runtime_cert_monitor: tokio::runtime::Handle, notify_certs_rotated:
             Err(err) => log::error!("Error while trying to get trust bundle {:?}", err),
         };
 
+		//Same thing as above but for private key and server cert
         match cert_monitor.need_to_rotate_server_cert() {
             Ok((need_to_rotate_cert, server_cert, private_key)) => {
                 if need_to_rotate_cert == true
                 {
+					//If we have a new cert, we need to write it in file system
                     let result = utils::write_binary_to_file(server_cert.as_bytes(),PROXY_SERVER_CERT_PATH);
                     match result {
                         Err(err) => panic!("{:?}", err),
                         Ok(_) => (),
                     }
-        
+					
+					//If we have a new cert, we need to write it in file system
                     let result = utils::write_binary_to_file(private_key.as_bytes(),PROXY_SERVER_PRIVATE_KEY_PATH);
                     match result {
                         Err(err) => panic!("{:?}", err),

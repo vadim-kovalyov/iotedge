@@ -2,9 +2,13 @@ use super::utils;
 use tokio::sync::Notify;
 use std::sync::Arc;
 use anyhow::{Context, Result};
+use std::str;
+use regex::Regex;
 
 const PROXY_CONFIG_TAG:&str = "proxy config"; 
-const PROXY_CONFIG_PATH:&str = "foo.txt"; 
+const PROXY_CONFIG_PATH_RAW:&str = "/app/templates/nginx_default_config.conf";
+const PROXY_CONFIG_PATH_PARSED:&str = "/app/nginx_config.conf";
+const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGING_BLOB_MODULE_NAME_ADDRESS,NGINX_HAS_REGISTRY_MODULE,NGINX_HAS_REGISTRY_MODULE,NGING_REGISTRY_MODULE_ADDRESS,NGINX_NOT_ROOT,GATEWAY_HOSTNAME";
 
 fn duration_from_secs_str(s: &str) -> Result<std::time::Duration, <u64 as std::str::FromStr>::Err> {
 	Ok(std::time::Duration::from_secs(s.parse()?))
@@ -72,38 +76,104 @@ pub fn start(runtime_handle: tokio::runtime::Handle, notify_received_config: Arc
 		report_twin_state_period,
 	);
 
+	//Parse default config and notify to reboot nginx if it has already started
+	//If the config is incorrect, panic because otherwise nginx doesn't have any config.
+	parse_config().expect("Unable to read default configuration");
+    match parse_config() {
+		//Notify watchdog config is there
+        Ok(()) => notify_received_config.notify(),
+        Err(error) => panic!("Error while parsing default config: {:?}", error),
+	};
+
 	while let Some(message) = runtime_handle.block_on(client.next()) {
 		let message = message.unwrap();
 
 		log::info!("received message {:?}", message);
 
 		if let azure_iot_mqtt::module::Message::TwinPatch(twin) = message {
-			if let Err(err) = save_config(&twin)
+			if let Err(err) = save_raw_config(&twin)
 			{
 				log::error!("received message {:?}", err);
 			}else
 			{
-				notify_received_config.notify();
+				//Here we don't need to panic if config is wrong. There is already a good config running.
+				match parse_config() {
+					//Notify watchdog config is there
+					Ok(()) => notify_received_config.notify(),
+					Err(error) => log::error!("Error while parsing default config: {:?}", error),
+				};		
 			}
 		};
 	}
 }
 
-
-fn save_config(twin: &azure_iot_mqtt::TwinProperties)  -> Result<()>
+fn save_raw_config(twin: &azure_iot_mqtt::TwinProperties)  -> Result<()>
 {
 	let json = twin.properties.get_key_value("hello");
 
 	//Get value associated with the key and extract is as a string.
-	let str = (*(json.context(format!("Key {} not found in twin", PROXY_CONFIG_TAG))?.1)).as_str();
-	
-	let encoded_file =str.context("Cannot extract json as base64 string")?;
+	let str = (*(json.context(format!("Key {} not found in twin", PROXY_CONFIG_TAG))?.1)).
+			as_str().context("Cannot extract json as base64 string")?;
 
-	let bytes = base64::decode(encoded_file).context("Cannot decode base64 string")?;
+	let bytes = get_raw_config(str)?;
 
-	utils::write_binary_to_file(&bytes,PROXY_CONFIG_PATH)?;
+	utils::write_binary_to_file(&bytes,PROXY_CONFIG_PATH_RAW)?;
 
 	Ok(())
+}
+
+fn parse_config()  -> Result<()>
+{
+
+
+	//Read "raw configuration". Contains environment variables and sections.
+	//Extract IO calls from core function for mocking
+	let str = utils::get_string_from_file(PROXY_CONFIG_PATH_RAW)?;
+
+	let str = get_parsed_config(&str)?;
+	//Extract IO calls from core function for mocking
+	utils::write_binary_to_file(&str.as_bytes(),PROXY_CONFIG_PATH_PARSED)?;
+
+	Ok(())
+}
+
+fn get_raw_config(encoded_file: &str)  -> Result<Vec<u8>, anyhow::Error>
+{
+	let bytes = match base64::decode(encoded_file)
+	{
+		Ok(bytes) => bytes,
+		Err(err) => return Err(anyhow::anyhow!(format!("Cannot decode base64 {:?}", err))),
+	};
+
+	Ok(bytes)
+}
+
+
+fn get_parsed_config(str: &str) -> Result<String, anyhow::Error>
+{
+	let mut context = std::collections::HashMap::new();
+
+	//Check if user passed their own env variable list.
+	let vars = match std::env::var("NGINX_CONFIG_ENV_VAR_LIST"){
+		Ok(vars) => vars,
+		//@TO CHECK It copies the string, is that ok?
+		Err(_) => PROXY_CONFIG_DEFAULT_VARS_LIST.to_string(), 
+	};
+	let vars = vars.split(',');
+
+	for key in vars{
+		let val = match std::env::var(key){
+			Ok(val) => val,
+			Err(_) => "0".to_string()		
+		};
+		context.insert(key.to_string(), val);
+	}
+
+	let str: String = envsubst::substitute(str, &context).unwrap();
+	let re = Regex::new(r"#if_tag 0((.|\n)*?)#endif_tag 0").unwrap();
+	let str2 = re.replace_all(&str, "").to_string();
+
+	Ok(str2)
 }
 
 fn spawn_background_tasks(
@@ -136,4 +206,30 @@ fn spawn_background_tasks(
 			let () = result.expect("couldn't report twin state patch");
 		}
 	});
+}
+
+
+#[cfg(test)]
+mod tests {
+	const RAW_CONFIG_BASE64:&str = "ZXZlbnRzIHsgfQ0KDQoNCmh0dHAgew0KICAgIHByb3h5X2J1ZmZlcnMgMzIgMTYwazsgIA0KICAgIHByb3h5X2J1ZmZlcl9zaXplIDE2MGs7DQogICAgcHJveHlfcmVhZF90aW1lb3V0IDM2MDA7DQogICAgZXJyb3JfbG9nIC9kZXYvc3Rkb3V0IGluZm87DQogICAgYWNjZXNzX2xvZyAvZGV2L3N0ZG91dDsNCg0KICAgIHNlcnZlciB7DQogICAgICAgIGxpc3RlbiAke05HSU5YX0RFRkFVTFRfUE9SVH0gc3NsIGRlZmF1bHRfc2VydmVyOw0KDQogICAgICAgIGNodW5rZWRfdHJhbnNmZXJfZW5jb2Rpbmcgb247DQoNCiAgICAgICAgc3NsX2NlcnRpZmljYXRlICAgICAgICAke05HSU5YX0NFUlRfUEFUSH07DQogICAgICAgIHNzbF9jZXJ0aWZpY2F0ZV9rZXkgICAgJHtOR0lOWF9QUklWQVRFX0tFWV9QQVRIfTsgDQoNCg0KICAgICAgICAjaWZfdGFnICR7TkdJTlhfSEFTX0JMT0JfTU9EVUxFfQ0KICAgICAgICBpZiAoJGh0dHBfeF9tc19ibG9iX3R5cGUgPSBCbG9ja0Jsb2IpDQogICAgICAgIHsNCiAgICAgICAgICAgIHJld3JpdGUgXiguKikkIC9zdG9yYWdlJDEgbGFzdDsNCiAgICAgICAgfSANCiAgICAgICAgI2VuZGlmX3RhZyAke05HSU5YX0hBU19CTE9CX01PRFVMRX0NCg0KICAgICAgICAjaWZfdGFnICR7TkdJTlhfSEFTX1JFR0lTVFJZX01PRFVMRX0NCiAgICAgICAgbG9jYXRpb24gL3YyIHsNCiAgICAgICAgICAgIHByb3h5X2h0dHBfdmVyc2lvbiAxLjE7DQogICAgICAgICAgICByZXNvbHZlciAxMjcuMC4wLjExOw0KICAgICAgICAgICAgc2V0ICRiYWNrZW5kICJodHRwOi8vJHtOR0lOR19SRUdJU1RSWV9NT0RVTEVfQUREUkVTU30iOw0KICAgICAgICAgICAgcHJveHlfcGFzcyAgICAgICAgICAkYmFja2VuZDsNCiAgICAgICAgfQ0KICAgICAgICNlbmRpZl90YWcgJHtOR0lOWF9IQVNfUkVHSVNUUllfTU9EVUxFfQ0KDQogICAgICAgICNpZl90YWcgJHtOR0lOWF9IQVNfQkxPQl9NT0RVTEV9DQogICAgICAgIGxvY2F0aW9uIH5eL3N0b3JhZ2UvKC4qKXsNCiAgICAgICAgICAgIHByb3h5X2h0dHBfdmVyc2lvbiAxLjE7DQogICAgICAgICAgICByZXNvbHZlciAxMjcuMC4wLjExOw0KICAgICAgICAgICAgc2V0ICRiYWNrZW5kICJodHRwOi8vJHtOR0lOR19CTE9CX01PRFVMRV9OQU1FX0FERFJFU1N9IjsNCiAgICAgICAgICAgIHByb3h5X3Bhc3MgICAgICAgICAgJGJhY2tlbmQvJDEkaXNfYXJncyRhcmdzOw0KICAgICAgICB9DQogICAgICAgICNlbmRpZl90YWcgJHtOR0lOWF9IQVNfQkxPQl9NT0RVTEV9DQoNCiAgICAgICAgI2lmX3RhZyAke05HSU5YX05PVF9ST09UfSAgICAgIA0KICAgICAgICBsb2NhdGlvbiAvew0KICAgICAgICAgICAgcHJveHlfaHR0cF92ZXJzaW9uIDEuMTsNCiAgICAgICAgICAgIHJlc29sdmVyIDEyNy4wLjAuMTE7DQogICAgICAgICAgICBzZXQgJGJhY2tlbmQgImh0dHBzOi8vJHtHQVRFV0FZX0hPU1ROQU1FfTo0NDMiOw0KICAgICAgICAgICAgcHJveHlfcGFzcyAgICAgICAgICAkYmFja2VuZC8kMSRpc19hcmdzJGFyZ3M7DQogICAgICAgIH0NCiAgICAgICAgI2VuZGlmX3RhZyAke05HSU5YX05PVF9ST09UfQ0KICAgIH0NCn0=";
+    const RAW_CONFIG_TEXT:&str = "events { }\r\n\r\n\r\nhttp {\r\n    proxy_buffers 32 160k;  \r\n    proxy_buffer_size 160k;\r\n    proxy_read_timeout 3600;\r\n    error_log /dev/stdout info;\r\n    access_log /dev/stdout;\r\n\r\n    server {\r\n        listen ${NGINX_DEFAULT_PORT} ssl default_server;\r\n\r\n        chunked_transfer_encoding on;\r\n\r\n        ssl_certificate        ${NGINX_CERT_PATH};\r\n        ssl_certificate_key    ${NGINX_PRIVATE_KEY_PATH}; \r\n\r\n\r\n        #if_tag ${NGINX_HAS_BLOB_MODULE}\r\n        if ($http_x_ms_blob_type = BlockBlob)\r\n        {\r\n            rewrite ^(.*)$ /storage$1 last;\r\n        } \r\n        #endif_tag ${NGINX_HAS_BLOB_MODULE}\r\n\r\n        #if_tag ${NGINX_HAS_REGISTRY_MODULE}\r\n        location /v2 {\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://${NGING_REGISTRY_MODULE_ADDRESS}\";\r\n            proxy_pass          $backend;\r\n        }\r\n       #endif_tag ${NGINX_HAS_REGISTRY_MODULE}\r\n\r\n        #if_tag ${NGINX_HAS_BLOB_MODULE}\r\n        location ~^/storage/(.*){\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://${NGING_BLOB_MODULE_NAME_ADDRESS}\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag ${NGINX_HAS_BLOB_MODULE}\r\n\r\n        #if_tag ${NGINX_NOT_ROOT}      \r\n        location /{\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"https://${GATEWAY_HOSTNAME}:443\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag ${NGINX_NOT_ROOT}\r\n    }\r\n}";
+	const PARSED_CONFIG:&str = "events { }\r\n\r\n\r\nhttp {\r\n    proxy_buffers 32 160k;  \r\n    proxy_buffer_size 160k;\r\n    proxy_read_timeout 3600;\r\n    error_log /dev/stdout info;\r\n    access_log /dev/stdout;\r\n\r\n    server {\r\n        listen 443 ssl default_server;\r\n\r\n        chunked_transfer_encoding on;\r\n\r\n        ssl_certificate        server.crt;\r\n        ssl_certificate_key    server.key; \r\n\r\n\r\n        #if_tag 1\r\n        if ($http_x_ms_blob_type = BlockBlob)\r\n        {\r\n            rewrite ^(.*)$ /storage$1 last;\r\n        } \r\n        #endif_tag 1\r\n\r\n        \r\n\r\n        #if_tag 1\r\n        location ~^/storage/(.*){\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://module_blob:11002\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag 1\r\n\r\n        \r\n    }\r\n}";
+	use super::{*};
+
+    #[test]
+    fn parse_config() {
+		std::env::set_var("NGINX_DEFAULT_PORT", "443");
+		std::env::set_var("NGINX_CERT_PATH", "server.crt");
+		std::env::set_var("NGINX_PRIVATE_KEY_PATH", "server.key");
+		std::env::set_var("NGINX_HAS_BLOB_MODULE", "1");
+		std::env::set_var("NGING_BLOB_MODULE_NAME_ADDRESS", "module_blob:11002");	
+
+		let byte_str = get_raw_config(RAW_CONFIG_BASE64).unwrap();
+		let config = str::from_utf8(&byte_str).unwrap();
+		assert_eq!(config, RAW_CONFIG_TEXT);  
+
+		let config =  get_parsed_config(RAW_CONFIG_TEXT).unwrap();
+
+		assert_eq!(&config, PARSED_CONFIG);   
+	}
 }
