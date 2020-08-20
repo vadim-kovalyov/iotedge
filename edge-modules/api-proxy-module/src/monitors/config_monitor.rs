@@ -52,7 +52,7 @@ struct Options {
 	report_twin_state_period: std::time::Duration,
 }
 
-pub fn start(runtime_handle: tokio::runtime::Handle, notify_received_config: Arc<Notify>){
+pub async fn start(runtime_handle: tokio::runtime::Handle, notify_received_config: Arc<Notify>) {
 	use futures_util::StreamExt;
 
 	let Options {
@@ -91,7 +91,7 @@ pub fn start(runtime_handle: tokio::runtime::Handle, notify_received_config: Arc
         Err(error) => panic!("Error while parsing default config: {:?}", error),
 	};
 
-	while let Some(message) = runtime_handle.block_on(client.next()) {
+	while let Some(message) =  client.next().await {
 		let message = message.unwrap();
 
 		log::info!("received message {:?}", message);

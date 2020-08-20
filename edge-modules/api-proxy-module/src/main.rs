@@ -13,14 +13,15 @@ use anyhow::Context;
 use tokio::process::Command;
 use std::process::Stdio;
 use tokio::sync::Notify;
-use std::sync::Arc;
+use std::{pin::Pin, sync::Arc};
 mod monitors;
 use futures_util::future::{self};
+use futures::Future;
 
-fn main()  {
+#[tokio::main]
+async fn main()  {
 	env_logger::Builder::from_env(env_logger::Env::new().filter_or("AZURE_IOT_MQTT_LOG", "mqtt3=info,mqtt3::logging=info,azure_iot_mqtt=info,edge_module=info")).init();
 
-	
 	let runtime = tokio::runtime::Runtime::new().expect("couldn't initialize tokio runtime");
 
 	let notify_need_reload_api_proxy = Arc::new(Notify::new());
@@ -28,21 +29,21 @@ fn main()  {
 	let notify_certs_rotated = notify_need_reload_api_proxy.clone();
 
 	let runtime_config_monitor = runtime.handle().clone();
-	runtime.handle().spawn_blocking(move || monitors::config_monitor::start(runtime_config_monitor, notify_received_config));
+	let config_task = 
+		monitors::config_monitor::start(runtime_config_monitor, notify_received_config);
 
-	let runtime_cert_monitor = runtime.handle().clone();
-	runtime.handle().spawn_blocking(move ||monitors::certs_monitor::start(runtime_cert_monitor, notify_certs_rotated));
+	let cert_task = monitors::certs_monitor::start(notify_certs_rotated);
 
-	let runtime_watchdog = runtime.handle().clone();
-	runtime.handle().spawn_blocking(move ||nginx_controller_loop(runtime_watchdog, notify_need_reload_api_proxy));
+	let loop_task = nginx_controller_loop(notify_need_reload_api_proxy);
 
-	//@Todo find a cleaner way to wait.
-	loop{
-		std::thread::sleep(std::time::Duration::new(1000, 0));
-	}
+	futures::future::join_all(vec![
+		Box::pin(config_task) as Pin<Box<dyn Future<Output = ()>>>,
+		Box::pin(cert_task) as Pin<Box<dyn Future<Output = ()>>>,
+		Box::pin(loop_task) as Pin<Box<dyn Future<Output = ()>>>,
+	]).await;
 }
 
-pub fn nginx_controller_loop(runtime_handle: tokio::runtime::Handle, notify_need_reload_api_proxy: Arc<Notify>){
+pub async fn nginx_controller_loop(notify_need_reload_api_proxy: Arc<Notify>){
 	let program_path= "/usr/sbin/nginx";
 	let args = vec!["-c".to_string(), "/app/nginx_config.conf".to_string(),"-g".to_string(),"daemon off;".to_string()];
 	let name = "nginx";
@@ -54,15 +55,14 @@ pub fn nginx_controller_loop(runtime_handle: tokio::runtime::Handle, notify_need
 	//Wait for certificate rotation and for parse configuration.
 	//This is just to avoid error at the beginning when nginx tries to start
 	//but configuration is not ready
-	runtime_handle.block_on(notify_need_reload_api_proxy.notified());
-	runtime_handle.block_on(notify_need_reload_api_proxy.notified());
+	notify_need_reload_api_proxy.notified().await;
 
 	loop{
 		//Make sure proxy is stopped by sending stop command. Otherwise port will be blocked
 		let command = Command::new(stop_proxy_program_path).args(&stop_proxy_args)
 		.spawn()
 		.with_context(|| format!("Failed to start {:?} process.", stop_proxy_name)).expect("Cannot stop proxy!");
-		runtime_handle.block_on(command).expect("Error while trying to wait on stop proxy future");
+		command.await.expect("Error while trying to wait on stop proxy future");
 
 
 		//Start nginx
@@ -75,7 +75,7 @@ pub fn nginx_controller_loop(runtime_handle: tokio::runtime::Handle, notify_need
 		futures::pin_mut!(child_nginx,signal_restart_nginx);
 		
 		//Wait for: either a signal to restart(cert rotation, new config) or the child to crash.
-		runtime_handle.block_on(future::select(child_nginx, signal_restart_nginx));
+		future::select(child_nginx, signal_restart_nginx).await;
 		log::info!("Restarting Proxy");
 	}
 }

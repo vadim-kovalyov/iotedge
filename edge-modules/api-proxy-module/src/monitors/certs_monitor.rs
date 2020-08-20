@@ -17,7 +17,7 @@ const PROXY_SERVER_CERT_VALIDITY_DAYS:i64 = 90;
 const EXPIRY_TIME_START_DATE:&str = "1996-12-19T00:00:00+00:00";
 
 //Check for expiry of certificates. If certificates are expired: rotate.
-pub fn start(runtime_cert_monitor: tokio::runtime::Handle, notify_certs_rotated: Arc<Notify>) {
+pub async fn start(notify_certs_rotated: Arc<Notify>) {
 	const NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS: Duration = Duration::from_secs(1);
 	
 	
@@ -32,7 +32,7 @@ pub fn start(runtime_cert_monitor: tokio::runtime::Handle, notify_certs_rotated:
 		                                   workload_url,chrono::Duration::days(PROXY_SERVER_CERT_VALIDITY_DAYS));
 
     loop{
-		runtime_cert_monitor.block_on(delay_for(NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS));
+		delay_for(NGINX_CERTIFICATE_MONITOR_POLL_INTERVAL_SECS).await;
 		//If root cert has rotated, we need to notify the watchdog to restart nginx.
 		let mut need_notify = false;
 		//Check for rotation. If rotated then we notify.
