@@ -33,7 +33,7 @@ url = "2"
 anyhow = "1.0.32"
 reqwest = { version = "0.10.7", features = ["blocking", "json"] }
 chrono = "0.4.13"
-fasthash = "0.4.0"
+md5 = "0.7.0"
 azure-iot-mqtt = { path = "./rust-sdk/azure-iot-mqtt" }
 structopt = "0.3"
 env_logger = "0.7"

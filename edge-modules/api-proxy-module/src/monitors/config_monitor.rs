@@ -6,9 +6,13 @@ use std::str;
 use regex::Regex;
 
 const PROXY_CONFIG_TAG:&str = "proxy config"; 
-const PROXY_CONFIG_PATH_RAW:&str = "/app/templates/nginx_default_config.conf";
+const PROXY_CONFIG_PATH_RAW:&str = "/app/nginx_default_config.conf";
 const PROXY_CONFIG_PATH_PARSED:&str = "/app/nginx_config.conf";
 const PROXY_CONFIG_DEFAULT_VARS_LIST:&str = "NGINX_DEFAULT_PORT,NGINX_HAS_BLOB_MODULE,NGING_BLOB_MODULE_NAME_ADDRESS,NGINX_HAS_REGISTRY_MODULE,NGINX_HAS_REGISTRY_MODULE,NGING_REGISTRY_MODULE_ADDRESS,NGINX_NOT_ROOT,GATEWAY_HOSTNAME";
+const TWIN_PROXY_CONFIG_KEY:&str = "nginx_config";
+
+const PROXY_CONFIG_DEFAULT_VALUES:&'static [(&str, &str)] = &[("NGINX_DEFAULT_PORT","443")];
+
 
 fn duration_from_secs_str(s: &str) -> Result<std::time::Duration, <u64 as std::str::FromStr>::Err> {
 	Ok(std::time::Duration::from_secs(s.parse()?))
@@ -59,6 +63,8 @@ pub fn start(runtime_handle: tokio::runtime::Handle, notify_received_config: Arc
 		report_twin_state_period,
 	} = structopt::StructOpt::from_args();
 
+	//Set default value for some environment variables here
+	set_default_env_vars();
 
 	let mut client = azure_iot_mqtt::module::Client::new_for_edge_module(
 		if use_websocket { azure_iot_mqtt::Transport::WebSocket } else { azure_iot_mqtt::Transport::Tcp },
@@ -107,9 +113,22 @@ pub fn start(runtime_handle: tokio::runtime::Handle, notify_received_config: Arc
 	}
 }
 
+fn set_default_env_vars() -> () {
+	
+	for (key, value) in PROXY_CONFIG_DEFAULT_VALUES.iter()
+	{
+		match std::env::var(key){
+			//If env variable is already declared, do nothing
+			Ok(_) => continue,
+			//Else add the default value
+			Err(_) =>std::env::set_var(key, value)		
+		};	
+	}	
+}
+
 fn save_raw_config(twin: &azure_iot_mqtt::TwinProperties)  -> Result<()>
 {
-	let json = twin.properties.get_key_value("hello");
+	let json = twin.properties.get_key_value(TWIN_PROXY_CONFIG_KEY);
 
 	//Get value associated with the key and extract is as a string.
 	let str = (*(json.context(format!("Key {} not found in twin", PROXY_CONFIG_TAG))?.1)).
@@ -124,8 +143,6 @@ fn save_raw_config(twin: &azure_iot_mqtt::TwinProperties)  -> Result<()>
 
 fn parse_config()  -> Result<()>
 {
-
-
 	//Read "raw configuration". Contains environment variables and sections.
 	//Extract IO calls from core function for mocking
 	let str = utils::get_string_from_file(PROXY_CONFIG_PATH_RAW)?;
@@ -211,13 +228,19 @@ fn spawn_background_tasks(
 
 #[cfg(test)]
 mod tests {
-	const RAW_CONFIG_BASE64:&str = "ZXZlbnRzIHsgfQ0KDQoNCmh0dHAgew0KICAgIHByb3h5X2J1ZmZlcnMgMzIgMTYwazsgIA0KICAgIHByb3h5X2J1ZmZlcl9zaXplIDE2MGs7DQogICAgcHJveHlfcmVhZF90aW1lb3V0IDM2MDA7DQogICAgZXJyb3JfbG9nIC9kZXYvc3Rkb3V0IGluZm87DQogICAgYWNjZXNzX2xvZyAvZGV2L3N0ZG91dDsNCg0KICAgIHNlcnZlciB7DQogICAgICAgIGxpc3RlbiAke05HSU5YX0RFRkFVTFRfUE9SVH0gc3NsIGRlZmF1bHRfc2VydmVyOw0KDQogICAgICAgIGNodW5rZWRfdHJhbnNmZXJfZW5jb2Rpbmcgb247DQoNCiAgICAgICAgc3NsX2NlcnRpZmljYXRlICAgICAgICAke05HSU5YX0NFUlRfUEFUSH07DQogICAgICAgIHNzbF9jZXJ0aWZpY2F0ZV9rZXkgICAgJHtOR0lOWF9QUklWQVRFX0tFWV9QQVRIfTsgDQoNCg0KICAgICAgICAjaWZfdGFnICR7TkdJTlhfSEFTX0JMT0JfTU9EVUxFfQ0KICAgICAgICBpZiAoJGh0dHBfeF9tc19ibG9iX3R5cGUgPSBCbG9ja0Jsb2IpDQogICAgICAgIHsNCiAgICAgICAgICAgIHJld3JpdGUgXiguKikkIC9zdG9yYWdlJDEgbGFzdDsNCiAgICAgICAgfSANCiAgICAgICAgI2VuZGlmX3RhZyAke05HSU5YX0hBU19CTE9CX01PRFVMRX0NCg0KICAgICAgICAjaWZfdGFnICR7TkdJTlhfSEFTX1JFR0lTVFJZX01PRFVMRX0NCiAgICAgICAgbG9jYXRpb24gL3YyIHsNCiAgICAgICAgICAgIHByb3h5X2h0dHBfdmVyc2lvbiAxLjE7DQogICAgICAgICAgICByZXNvbHZlciAxMjcuMC4wLjExOw0KICAgICAgICAgICAgc2V0ICRiYWNrZW5kICJodHRwOi8vJHtOR0lOR19SRUdJU1RSWV9NT0RVTEVfQUREUkVTU30iOw0KICAgICAgICAgICAgcHJveHlfcGFzcyAgICAgICAgICAkYmFja2VuZDsNCiAgICAgICAgfQ0KICAgICAgICNlbmRpZl90YWcgJHtOR0lOWF9IQVNfUkVHSVNUUllfTU9EVUxFfQ0KDQogICAgICAgICNpZl90YWcgJHtOR0lOWF9IQVNfQkxPQl9NT0RVTEV9DQogICAgICAgIGxvY2F0aW9uIH5eL3N0b3JhZ2UvKC4qKXsNCiAgICAgICAgICAgIHByb3h5X2h0dHBfdmVyc2lvbiAxLjE7DQogICAgICAgICAgICByZXNvbHZlciAxMjcuMC4wLjExOw0KICAgICAgICAgICAgc2V0ICRiYWNrZW5kICJodHRwOi8vJHtOR0lOR19CTE9CX01PRFVMRV9OQU1FX0FERFJFU1N9IjsNCiAgICAgICAgICAgIHByb3h5X3Bhc3MgICAgICAgICAgJGJhY2tlbmQvJDEkaXNfYXJncyRhcmdzOw0KICAgICAgICB9DQogICAgICAgICNlbmRpZl90YWcgJHtOR0lOWF9IQVNfQkxPQl9NT0RVTEV9DQoNCiAgICAgICAgI2lmX3RhZyAke05HSU5YX05PVF9ST09UfSAgICAgIA0KICAgICAgICBsb2NhdGlvbiAvew0KICAgICAgICAgICAgcHJveHlfaHR0cF92ZXJzaW9uIDEuMTsNCiAgICAgICAgICAgIHJlc29sdmVyIDEyNy4wLjAuMTE7DQogICAgICAgICAgICBzZXQgJGJhY2tlbmQgImh0dHBzOi8vJHtHQVRFV0FZX0hPU1ROQU1FfTo0NDMiOw0KICAgICAgICAgICAgcHJveHlfcGFzcyAgICAgICAgICAkYmFja2VuZC8kMSRpc19hcmdzJGFyZ3M7DQogICAgICAgIH0NCiAgICAgICAgI2VuZGlmX3RhZyAke05HSU5YX05PVF9ST09UfQ0KICAgIH0NCn0=";
-    const RAW_CONFIG_TEXT:&str = "events { }\r\n\r\n\r\nhttp {\r\n    proxy_buffers 32 160k;  \r\n    proxy_buffer_size 160k;\r\n    proxy_read_timeout 3600;\r\n    error_log /dev/stdout info;\r\n    access_log /dev/stdout;\r\n\r\n    server {\r\n        listen ${NGINX_DEFAULT_PORT} ssl default_server;\r\n\r\n        chunked_transfer_encoding on;\r\n\r\n        ssl_certificate        ${NGINX_CERT_PATH};\r\n        ssl_certificate_key    ${NGINX_PRIVATE_KEY_PATH}; \r\n\r\n\r\n        #if_tag ${NGINX_HAS_BLOB_MODULE}\r\n        if ($http_x_ms_blob_type = BlockBlob)\r\n        {\r\n            rewrite ^(.*)$ /storage$1 last;\r\n        } \r\n        #endif_tag ${NGINX_HAS_BLOB_MODULE}\r\n\r\n        #if_tag ${NGINX_HAS_REGISTRY_MODULE}\r\n        location /v2 {\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://${NGING_REGISTRY_MODULE_ADDRESS}\";\r\n            proxy_pass          $backend;\r\n        }\r\n       #endif_tag ${NGINX_HAS_REGISTRY_MODULE}\r\n\r\n        #if_tag ${NGINX_HAS_BLOB_MODULE}\r\n        location ~^/storage/(.*){\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://${NGING_BLOB_MODULE_NAME_ADDRESS}\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag ${NGINX_HAS_BLOB_MODULE}\r\n\r\n        #if_tag ${NGINX_NOT_ROOT}      \r\n        location /{\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"https://${GATEWAY_HOSTNAME}:443\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag ${NGINX_NOT_ROOT}\r\n    }\r\n}";
+	const RAW_CONFIG_BASE64:&str = "ZXZlbnRzIHsgfQ0KDQoNCmh0dHAgew0KICAgIHByb3h5X2J1ZmZlcnMgMzIgMTYwazsgIA0KICAgIHByb3h5X2J1ZmZlcl9zaXplIDE2MGs7DQogICAgcHJveHlfcmVhZF90aW1lb3V0IDM2MDA7DQogICAgZXJyb3JfbG9nIC9kZXYvc3Rkb3V0IGluZm87DQogICAgYWNjZXNzX2xvZyAvZGV2L3N0ZG91dDsNCg0KICAgIHNlcnZlciB7DQogICAgICAgIGxpc3RlbiAke05HSU5YX0RFRkFVTFRfUE9SVH0gc3NsIGRlZmF1bHRfc2VydmVyOw0KDQogICAgICAgIGNodW5rZWRfdHJhbnNmZXJfZW5jb2Rpbmcgb247DQoNCiAgICAgICAgc3NsX2NlcnRpZmljYXRlICAgICAgICBzZXJ2ZXIuY3J0Ow0KICAgICAgICBzc2xfY2VydGlmaWNhdGVfa2V5ICAgIHNlcnZlci5rZXk7IA0KDQoNCiAgICAgICAgI2lmX3RhZyAke05HSU5YX0hBU19CTE9CX01PRFVMRX0NCiAgICAgICAgaWYgKCRodHRwX3hfbXNfYmxvYl90eXBlID0gQmxvY2tCbG9iKQ0KICAgICAgICB7DQogICAgICAgICAgICByZXdyaXRlIF4oLiopJCAvc3RvcmFnZSQxIGxhc3Q7DQogICAgICAgIH0gDQogICAgICAgICNlbmRpZl90YWcgJHtOR0lOWF9IQVNfQkxPQl9NT0RVTEV9DQoNCiAgICAgICAgI2lmX3RhZyAke05HSU5YX0hBU19SRUdJU1RSWV9NT0RVTEV9DQogICAgICAgIGxvY2F0aW9uIC92MiB7DQogICAgICAgICAgICBwcm94eV9odHRwX3ZlcnNpb24gMS4xOw0KICAgICAgICAgICAgcmVzb2x2ZXIgMTI3LjAuMC4xMTsNCiAgICAgICAgICAgIHNldCAkYmFja2VuZCAiaHR0cDovLyR7TkdJTkdfUkVHSVNUUllfTU9EVUxFX0FERFJFU1N9IjsNCiAgICAgICAgICAgIHByb3h5X3Bhc3MgICAgICAgICAgJGJhY2tlbmQ7DQogICAgICAgIH0NCiAgICAgICAjZW5kaWZfdGFnICR7TkdJTlhfSEFTX1JFR0lTVFJZX01PRFVMRX0NCg0KICAgICAgICAjaWZfdGFnICR7TkdJTlhfSEFTX0JMT0JfTU9EVUxFfQ0KICAgICAgICBsb2NhdGlvbiB+Xi9zdG9yYWdlLyguKil7DQogICAgICAgICAgICBwcm94eV9odHRwX3ZlcnNpb24gMS4xOw0KICAgICAgICAgICAgcmVzb2x2ZXIgMTI3LjAuMC4xMTsNCiAgICAgICAgICAgIHNldCAkYmFja2VuZCAiaHR0cDovLyR7TkdJTkdfQkxPQl9NT0RVTEVfTkFNRV9BRERSRVNTfSI7DQogICAgICAgICAgICBwcm94eV9wYXNzICAgICAgICAgICRiYWNrZW5kLyQxJGlzX2FyZ3MkYXJnczsNCiAgICAgICAgfQ0KICAgICAgICAjZW5kaWZfdGFnICR7TkdJTlhfSEFTX0JMT0JfTU9EVUxFfQ0KDQogICAgICAgICNpZl90YWcgJHtOR0lOWF9OT1RfUk9PVH0gICAgICANCiAgICAgICAgbG9jYXRpb24gL3sNCiAgICAgICAgICAgIHByb3h5X2h0dHBfdmVyc2lvbiAxLjE7DQogICAgICAgICAgICByZXNvbHZlciAxMjcuMC4wLjExOw0KICAgICAgICAgICAgc2V0ICRiYWNrZW5kICJodHRwczovLyR7R0FURVdBWV9IT1NUTkFNRX06NDQzIjsNCiAgICAgICAgICAgIHByb3h5X3Bhc3MgICAgICAgICAgJGJhY2tlbmQvJDEkaXNfYXJncyRhcmdzOw0KICAgICAgICB9DQogICAgICAgICNlbmRpZl90YWcgJHtOR0lOWF9OT1RfUk9PVH0NCiAgICB9DQp9";
+    const RAW_CONFIG_TEXT:&str = "events { }\r\n\r\n\r\nhttp {\r\n    proxy_buffers 32 160k;  \r\n    proxy_buffer_size 160k;\r\n    proxy_read_timeout 3600;\r\n    error_log /dev/stdout info;\r\n    access_log /dev/stdout;\r\n\r\n    server {\r\n        listen ${NGINX_DEFAULT_PORT} ssl default_server;\r\n\r\n        chunked_transfer_encoding on;\r\n\r\n        ssl_certificate        server.crt;\r\n        ssl_certificate_key    server.key; \r\n\r\n\r\n        #if_tag ${NGINX_HAS_BLOB_MODULE}\r\n        if ($http_x_ms_blob_type = BlockBlob)\r\n        {\r\n            rewrite ^(.*)$ /storage$1 last;\r\n        } \r\n        #endif_tag ${NGINX_HAS_BLOB_MODULE}\r\n\r\n        #if_tag ${NGINX_HAS_REGISTRY_MODULE}\r\n        location /v2 {\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://${NGING_REGISTRY_MODULE_ADDRESS}\";\r\n            proxy_pass          $backend;\r\n        }\r\n       #endif_tag ${NGINX_HAS_REGISTRY_MODULE}\r\n\r\n        #if_tag ${NGINX_HAS_BLOB_MODULE}\r\n        location ~^/storage/(.*){\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://${NGING_BLOB_MODULE_NAME_ADDRESS}\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag ${NGINX_HAS_BLOB_MODULE}\r\n\r\n        #if_tag ${NGINX_NOT_ROOT}      \r\n        location /{\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"https://${GATEWAY_HOSTNAME}:443\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag ${NGINX_NOT_ROOT}\r\n    }\r\n}";
 	const PARSED_CONFIG:&str = "events { }\r\n\r\n\r\nhttp {\r\n    proxy_buffers 32 160k;  \r\n    proxy_buffer_size 160k;\r\n    proxy_read_timeout 3600;\r\n    error_log /dev/stdout info;\r\n    access_log /dev/stdout;\r\n\r\n    server {\r\n        listen 443 ssl default_server;\r\n\r\n        chunked_transfer_encoding on;\r\n\r\n        ssl_certificate        server.crt;\r\n        ssl_certificate_key    server.key; \r\n\r\n\r\n        #if_tag 1\r\n        if ($http_x_ms_blob_type = BlockBlob)\r\n        {\r\n            rewrite ^(.*)$ /storage$1 last;\r\n        } \r\n        #endif_tag 1\r\n\r\n        \r\n\r\n        #if_tag 1\r\n        location ~^/storage/(.*){\r\n            proxy_http_version 1.1;\r\n            resolver 127.0.0.11;\r\n            set $backend \"http://module_blob:11002\";\r\n            proxy_pass          $backend/$1$is_args$args;\r\n        }\r\n        #endif_tag 1\r\n\r\n        \r\n    }\r\n}";
 	use super::{*};
 
     #[test]
-    fn parse_config() {
+    fn env_var_tests() {
+		//All environment variable tests are grouped in one test.
+		//The reason is concurrency. Rust test are multi threaded by default
+		//And environment variable are globals, so race condition happens.
+
+
+		//Check config
 		std::env::set_var("NGINX_DEFAULT_PORT", "443");
 		std::env::set_var("NGINX_CERT_PATH", "server.crt");
 		std::env::set_var("NGINX_PRIVATE_KEY_PATH", "server.key");
@@ -230,6 +253,32 @@ mod tests {
 
 		let config =  get_parsed_config(RAW_CONFIG_TEXT).unwrap();
 
-		assert_eq!(&config, PARSED_CONFIG);   
+		assert_eq!(&config, PARSED_CONFIG);
+
+		//Check defaults variables set
+		//unset all default variables
+		for (key, _value) in PROXY_CONFIG_DEFAULT_VALUES.iter()
+		{
+			std::env::remove_var(key);	
+		}
+		set_default_env_vars();
+		for (key, value) in PROXY_CONFIG_DEFAULT_VALUES.iter()
+		{
+			let var = std::env::var(key).unwrap();
+			assert_eq!(*value, &var); 	
+		}		
+
+		//Check the the default function doesn't override user variable
+		for (key, _value) in PROXY_CONFIG_DEFAULT_VALUES.iter()
+		{
+			std::env::set_var(key, "Dummy value");	
+		}
+		set_default_env_vars();
+		for (key, value) in PROXY_CONFIG_DEFAULT_VALUES.iter()
+		{
+			let var = std::env::var(key).unwrap();
+			assert_ne!(*value, &var); 	
+		}		
+
 	}
 }

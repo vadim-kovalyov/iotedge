@@ -35,7 +35,7 @@ pub struct ServerCerts{
 	privateKey: PrivateKey
 }
 
-
+//Workload API: get Root certificate, server certificate and private key.
 impl WorkloadAPIClient{
 
 	pub fn new() -> Result<Self, anyhow::Error>{

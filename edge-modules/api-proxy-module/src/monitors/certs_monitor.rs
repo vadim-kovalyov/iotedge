@@ -75,7 +75,7 @@ pub fn start(runtime_cert_monitor: tokio::runtime::Handle, notify_certs_rotated:
 
 struct CertificateMonitor {
 	
-	bundle_of_trust_hash: u64,
+	bundle_of_trust_hash: String,
 	work_load_api_client: WorkloadAPIClient,
 	cert_expiry_date: chrono::DateTime<Utc>,
 }
@@ -95,7 +95,7 @@ impl CertificateMonitor{
 		}; 
 
 		CertificateMonitor{
-			bundle_of_trust_hash: 0,
+			bundle_of_trust_hash: String::from(""),
 			work_load_api_client,
 			cert_expiry_date,
 		}
@@ -129,10 +129,10 @@ impl CertificateMonitor{
 		let mut has_bundle_of_trust_rotated = false;
 		let trust_bundle = self.work_load_api_client.get_bundle_of_trust()?;
 	
-	
-		let bundle_of_trust_hash = fasthash::xx::hash64(&trust_bundle);
+		 
+		let bundle_of_trust_hash = format!("{:x}", md5::compute(&trust_bundle));
 
-		if bundle_of_trust_hash != self.bundle_of_trust_hash
+		if self.bundle_of_trust_hash.ne(&bundle_of_trust_hash)
 		{
 			has_bundle_of_trust_rotated = true;
 			self.bundle_of_trust_hash = bundle_of_trust_hash;

@@ -34,34 +34,15 @@ fn main()  {
 	runtime.handle().spawn_blocking(move ||monitors::certs_monitor::start(runtime_cert_monitor, notify_certs_rotated));
 
 	let runtime_watchdog = runtime.handle().clone();
-	runtime.handle().spawn_blocking(move ||watch_dog_loop(runtime_watchdog, notify_need_reload_api_proxy));
+	runtime.handle().spawn_blocking(move ||nginx_controller_loop(runtime_watchdog, notify_need_reload_api_proxy));
 
 	//@Todo find a cleaner way to wait.
 	loop{
 		std::thread::sleep(std::time::Duration::new(1000, 0));
 	}
 }
-/*
 
-fn watch_dog_loop(runtime_handle: tokio::runtime::Handle, notify_need_reload_api_proxy: Arc<Notify>){
-	loop {
-		let name = "reload nginx";
-		let reload_proxy_program_path = "nginx";
-		let reload_proxy_args = vec!["-s".to_string(), "reload".to_string()];
-	
-		//Block until we get a signal to reload nginx
-		runtime_handle.block_on(notify_need_reload_api_proxy.notified());
-		let child = Command::new(reload_proxy_program_path).args(&reload_proxy_args)
-		.stdout(Stdio::inherit())
-		.spawn()
-		.with_context(|| format!("Failed to start {:?} process.", name)).expect("Cannot reload proxy!");
-
-		runtime_handle.block_on(child).expect("Error while trying to wait on reload proxy future");
-	}
-}*/
-
-
-pub fn watch_dog_loop(runtime_handle: tokio::runtime::Handle, notify_need_reload_api_proxy: Arc<Notify>){
+pub fn nginx_controller_loop(runtime_handle: tokio::runtime::Handle, notify_need_reload_api_proxy: Arc<Notify>){
 	let program_path= "/usr/sbin/nginx";
 	let args = vec!["-c".to_string(), "/app/nginx_config.conf".to_string(),"-g".to_string(),"daemon off;".to_string()];
 	let name = "nginx";
