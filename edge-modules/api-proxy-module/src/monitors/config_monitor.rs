@@ -54,7 +54,7 @@ struct Options {
 
 pub fn start(runtime_handle: tokio::runtime::Handle, notify_received_config: Arc<Notify>){
 	use futures_util::StreamExt;
-	
+
 	let Options {
 		use_websocket,
 		will,
