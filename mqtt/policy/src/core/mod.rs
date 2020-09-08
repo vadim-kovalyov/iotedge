@@ -1,6 +1,6 @@
 use std::{
     cmp::Ordering,
-    collections::{btree_map::Entry, BTreeMap},
+    collections::{btree_map::Entry, BTreeMap, HashMap},
 };
 
 use crate::errors::Result;
@@ -227,6 +227,7 @@ pub struct Request {
     identity: String,
     operation: String,
     resource: String,
+    pub properties: HashMap<String, String>,
 }
 
 impl Request {
@@ -250,6 +251,7 @@ impl Request {
             identity,
             operation,
             resource,
+            properties: HashMap::default(),
         })
     }
 }

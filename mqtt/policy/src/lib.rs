@@ -22,4 +22,4 @@ pub use crate::core::{Decision, Policy, Request};
 pub use crate::errors::{Error, Result};
 pub use crate::matcher::{DefaultResourceMatcher, ResourceMatcher};
 pub use crate::substituter::{DefaultSubstituter, Substituter};
-pub use crate::validator::{DefaultValidator, PolicyValidator};
+pub use crate::validator::{DefaultValidator, PolicyValidator, Field};

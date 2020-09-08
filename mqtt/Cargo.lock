@@ -1055,8 +1055,10 @@ dependencies = [
  "mockito",
  "mqtt-broker",
  "mqtt-broker-tests-util",
+ "mqtt-policy",
  "mqtt3",
  "openssl",
+ "policy",
  "proptest",
  "regex",
  "serde",
@@ -1079,6 +1081,14 @@ dependencies = [
  "mqtt-broker",
  "mqtt3",
  "serde",
+]
+
+[[package]]
+name = "mqtt-policy"
+version = "0.1.0"
+dependencies = [
+ "mqtt-broker",
+ "policy",
 ]
 
 [[package]]
