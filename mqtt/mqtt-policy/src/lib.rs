@@ -1,12 +1,12 @@
 use std::str::FromStr;
 
-use mqtt_broker::TopicFilter;
+use mqtt_broker::{auth::Activity, TopicFilter};
 use policy::{Field, PolicyValidator, Request, ResourceMatcher, Result, Substituter};
 
 pub struct TopicFilterMatcher;
 
 impl ResourceMatcher for TopicFilterMatcher {
-    fn do_match(&self, _context: &Request, input: &str, policy: &str) -> bool {
+    fn do_match<Activity>(&self, _context: &Request<Activity>, input: &str, policy: &str) -> bool {
         if let Ok(filter) = TopicFilter::from_str(policy) {
             filter.matches(input)
         } else {
@@ -18,21 +18,23 @@ impl ResourceMatcher for TopicFilterMatcher {
 pub struct MqttSubstituter;
 
 impl Substituter for MqttSubstituter {
-    fn visit_identity(&self, value: &str, context: &Request) -> Result<String> {
+    type Context = Activity;
+
+    fn visit_identity(&self, value: &str, context: &Request<Self::Context>) -> Result<String> {
         Ok(replace_variable(value, context))
     }
 
-    fn visit_resource(&self, value: &str, context: &Request) -> Result<String> {
+    fn visit_resource(&self, value: &str, context: &Request<Self::Context>) -> Result<String> {
         Ok(replace_variable(value, context))
     }
 }
 
-fn replace_variable(value: &str, context: &Request) -> String {
-    if let Some(variable) = extract_variable(value) {
-        if let Some(substitution) = context.properties.get(variable) {
-            return value.replace(&format!("{{{}}}", variable), substitution);
-        }
-    }
+fn replace_variable(value: &str, context: &Request<Activity>) -> String {
+    // if let Some(variable) = extract_variable(value) {
+    //     if let Some(substitution) = context.properties.get(variable) {
+    //         return value.replace(&format!("{{{}}}", variable), substitution);
+    //     }
+    // }
     value.to_string()
 }
 

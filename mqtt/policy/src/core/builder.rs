@@ -41,11 +41,11 @@ impl PolicyBuilder<DefaultValidator, DefaultResourceMatcher, DefaultSubstituter>
     }
 }
 
-impl<V, M, S> PolicyBuilder<V, M, S>
+impl<V, M, S, T> PolicyBuilder<V, M, S>
 where
     V: PolicyValidator,
     M: ResourceMatcher,
-    S: Substituter,
+    S: Substituter<Context = T>,
 {
     /// Specifies the `PolicyValidator` to validate the policy definition.
     pub fn with_validator<V1>(self, validator: V1) -> PolicyBuilder<V1, M, S> {
