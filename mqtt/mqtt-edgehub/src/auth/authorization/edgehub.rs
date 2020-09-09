@@ -1,16 +1,27 @@
-use std::{cell::RefCell, collections::HashMap, convert::Infallible};
+use std::{cell::RefCell, collections::HashMap};
 
 use mqtt_broker::{
     auth::{Activity, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
     AuthId, ClientId, ClientInfo,
 };
 
-#[derive(Debug, Default)]
-pub struct EdgeHubAuthorizer {
+#[derive(Debug)]
+pub struct EdgeHubAuthorizer<Z> {
     iothub_allowed_topics: RefCell<HashMap<ClientId, Vec<String>>>,
+    inner: Z,
 }
 
-impl EdgeHubAuthorizer {
+impl<Z> EdgeHubAuthorizer<Z>
+where
+    Z: Authorizer,
+{
+    pub fn new(authorizer: Z) -> Self {
+        Self {
+            inner: authorizer,
+            iothub_allowed_topics: RefCell::default(),
+        }
+    }
+
     #[allow(clippy::unused_self)]
     fn authorize_connect(
         &self,
@@ -153,11 +164,15 @@ fn allowed_iothub_topic(client_id: &ClientId) -> Vec<String> {
     ]
 }
 
-impl Authorizer for EdgeHubAuthorizer {
-    type Error = Infallible;
+impl<Z, E> Authorizer for EdgeHubAuthorizer<Z>
+where
+    Z: Authorizer<Error = E>,
+    E: std::error::Error,
+{
+    type Error = E;
 
     fn authorize(&self, activity: Activity) -> Result<Authorization, Self::Error> {
-        let (client_id, client_info, operation) = activity.into_parts();
+        let (client_id, client_info, operation) = activity.clone().into_parts();
         let auth = match operation {
             Operation::Connect(connect) => {
                 self.authorize_connect(&client_id, &client_info, &connect)
@@ -170,7 +185,10 @@ impl Authorizer for EdgeHubAuthorizer {
             }
         };
 
-        Ok(auth)
+        match auth {
+            auth @ Authorization::Allowed => Ok(auth),
+            Authorization::Forbidden(_) => self.inner.authorize(activity),
+        }
     }
 }
 
@@ -183,7 +201,7 @@ mod tests {
 
     use mqtt3::proto;
     use mqtt_broker::{
-        auth::{Activity, AuthId, Authorization, Authorizer, Operation},
+        auth::{Activity, AuthId, Authorization, Authorizer, DenyAll, Operation},
         ClientInfo,
     };
 
@@ -288,8 +306,8 @@ mod tests {
         assert_matches!(auth, Ok(Authorization::Forbidden(_)));
     }
 
-    fn authorizer() -> EdgeHubAuthorizer {
-        EdgeHubAuthorizer::default()
+    fn authorizer() -> EdgeHubAuthorizer<DenyAll> {
+        EdgeHubAuthorizer::new(DenyAll)
     }
 
     fn connect_activity(client_id: &str, auth_id: impl Into<AuthId>) -> Activity {

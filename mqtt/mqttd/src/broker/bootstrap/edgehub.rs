@@ -1,5 +1,5 @@
 use std::{
-    env,
+    env, fs,
     future::Future,
     path::{Path, PathBuf},
 };
@@ -26,7 +26,10 @@ use mqtt_broker::{
     ServerCertificate,
 };
 use mqtt_edgehub::{
-    auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
+    auth::{
+        EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer,
+        PolicyAuthorizer,
+    },
     command::CommandHandler,
     connection::MakeEdgeHubPacketProcessor,
     settings::Settings,
@@ -46,8 +49,6 @@ pub enum SidecarError {
     SidecarShutdown,
 }
 
-const DEVICE_ID_ENV: &str = "IOTEDGE_DEVICEID";
-
 pub fn config<P>(config_path: Option<P>) -> Result<Settings>
 where
     P: AsRef<Path>,
@@ -66,9 +67,15 @@ where
 pub async fn broker(
     config: &BrokerConfig,
     state: Option<BrokerSnapshot>,
-) -> Result<Broker<LocalAuthorizer<EdgeHubAuthorizer>>> {
+) -> Result<Broker<LocalAuthorizer<EdgeHubAuthorizer<PolicyAuthorizer>>>> {
+    let policy_json = fs::read_to_string("policy.json")
+        .expect("Can't find policy.json file in the current folder.");
+
+    let authorizer =
+        LocalAuthorizer::new(EdgeHubAuthorizer::new(PolicyAuthorizer::new(&policy_json)?));
+
     let broker = BrokerBuilder::default()
-        .with_authorizer(LocalAuthorizer::new(EdgeHubAuthorizer::default()))
+        .with_authorizer(authorizer)
         .with_state(state.unwrap_or_default())
         .with_config(config.clone())
         .build();
@@ -168,7 +175,7 @@ async fn start_sidecars(
 ) -> Result<(SidecarShutdownHandle, JoinHandle<()>)> {
     let (sidecar_termination_handle, sidecar_termination_receiver) = channel::<()>();
 
-    let device_id = env::var(DEVICE_ID_ENV)?;
+    let device_id = "test".to_string();
     let command_handler =
         CommandHandler::new(broker_handle, system_address, device_id.as_str()).await?;
     let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
