@@ -29,7 +29,7 @@ mqtt-policy = { path = "../mqtt-policy" }
 policy = { path = "../policy" }
 
 [dev-dependencies]
-assert_matches = "1.3.0"
+assert_matches = "1.3"
 lazy_static = "1.4"
 matches = "0.1"
 mockito = "0.25"
