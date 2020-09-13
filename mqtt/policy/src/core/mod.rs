@@ -7,7 +7,7 @@ use crate::errors::Result;
 use crate::{substituter::Substituter, Error, ResourceMatcher};
 
 mod builder;
-pub use builder::PolicyBuilder;
+pub use builder::{PolicyBuilder, PolicyDefinition, Statement};
 
 /// Policy engine. Represents a read-only set of rules and can
 /// evaluate `Request` based on those rules.
@@ -28,7 +28,7 @@ pub struct Policy<R, S> {
 
 impl<R, S, RC> Policy<R, S>
 where
-    R: ResourceMatcher,
+    R: ResourceMatcher<Context = RC>,
     S: Substituter<Context = RC>,
 {
     /// Evaluates the provided `&Request` and produces the `Decision`.
@@ -227,6 +227,8 @@ pub struct Request<RC> {
     identity: String,
     operation: String,
     resource: String,
+
+    /// Optional request context that can be used for request processing.
     context: Option<RC>,
 }
 
@@ -342,6 +344,15 @@ impl From<EffectOrd> for Decision {
             Effect::Allow => Decision::Allowed,
             Effect::Deny => Decision::Denied,
             Effect::Undefined => Decision::Denied,
+        }
+    }
+}
+
+impl From<&Statement> for EffectOrd {
+    fn from(statement: &Statement) -> Self {
+        match statement.effect() {
+            builder::Effect::Allow => EffectOrd::new(Effect::Allow, statement.order()),
+            builder::Effect::Deny => EffectOrd::new(Effect::Deny, statement.order()),
         }
     }
 }
