@@ -1,6 +1,7 @@
 use mqtt_broker::auth::Activity;
 use policy::{Request, Result, Substituter};
 
+#[derive(Debug)]
 pub struct MqttSubstituter;
 
 impl Substituter for MqttSubstituter {
@@ -31,7 +32,7 @@ fn replace_variable(value: &str, context: &Request<Activity>) -> String {
     value.to_string()
 }
 
-fn extract_variable(value: &str) -> Option<&str> {
+pub(super) fn extract_variable(value: &str) -> Option<&str> {
     if let Some(start) = value.find("{{") {
         if let Some(end) = value.find("}}") {
             return Some(&value[start..end]);
