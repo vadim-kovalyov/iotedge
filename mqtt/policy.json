@@ -1,0 +1,26 @@
+{
+    "schemaVersion": "2020-10-30",
+    "statements": [
+        {
+            "effect": "allow",
+            "identities": [
+                "test/$edgeHub/$broker"
+            ],
+            "operations": [
+                "mqtt:connect"
+            ]
+        },
+        {
+            "effect": "allow",
+            "identities": [
+                "test/$edgeHub/$broker"
+            ],
+            "operations": [
+                "mqtt:subscribe"
+            ],
+            "resources": [
+                "$edgehub/#"
+            ]
+        }
+    ]
+}

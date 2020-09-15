@@ -909,7 +909,7 @@ where
                 }
             }
             Ok((Authorization::Forbidden(reason), subscribe_to)) => {
-                debug!(
+                warn!(
                     "client {} not allowed to subscribe to topic {} qos {}. {}",
                     client_id,
                     subscribe_to.topic_filter,

@@ -1,5 +1,5 @@
 use std::any::Any;
-use std::{cell::RefCell, collections::HashMap, convert::Infallible};
+use std::{cell::RefCell, collections::HashMap};
 
 use crate::command::ServiceIdentity;
 use mqtt_broker::{

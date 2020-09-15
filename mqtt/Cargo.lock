@@ -1109,8 +1109,10 @@ dependencies = [
 name = "mqtt-policy"
 version = "0.1.0"
 dependencies = [
+ "lazy_static",
  "mqtt-broker",
  "policy",
+ "tracing",
 ]
 
 [[package]]

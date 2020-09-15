@@ -4,7 +4,9 @@
             "address": "0.0.0.0:1883"
         },
         "tls": {
-            "address": "0.0.0.0:8883"
+            "address": "0.0.0.0:8883",
+            "certificate": "identity.crt",
+            "private_key": "identity.pem"
         },
         "system": {
             "address": "0.0.0.0:1882"
