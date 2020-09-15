@@ -31,31 +31,35 @@ impl PolicyValidator for MqttValidator {
 
 impl MqttValidator {
     fn visit_definition(&self, definition: &PolicyDefinition) -> Result<()> {
-        for statement in definition.statements() {
-            let statement_errors = self.visit_statement(statement);
-            let identity_errors = statement
-                .identities()
-                .iter()
-                .filter_map(|i| self.visit_identity(i).err());
-            let operation_errors = statement
-                .resources()
-                .iter()
-                .filter_map(|o| self.visit_operation(o).err());
-            let resource_errors = statement
-                .operations()
-                .iter()
-                .filter_map(|r| self.visit_resource(r).err());
+        let errors = definition
+            .statements()
+            .iter()
+            .flat_map(|statement| {
+                let statement_errors = self.visit_statement(statement);
+                let identity_errors = statement
+                    .identities()
+                    .iter()
+                    .filter_map(|i| self.visit_identity(i).err());
+                let operation_errors = statement
+                    .resources()
+                    .iter()
+                    .filter_map(|o| self.visit_operation(o).err());
+                let resource_errors = statement
+                    .operations()
+                    .iter()
+                    .filter_map(|r| self.visit_resource(r).err());
 
-            let errors = statement_errors
-                .into_iter()
-                .chain(identity_errors)
-                .chain(operation_errors)
-                .chain(resource_errors)
-                .collect::<Vec<_>>();
+                statement_errors
+                    .into_iter()
+                    .chain(identity_errors)
+                    .chain(operation_errors)
+                    .chain(resource_errors)
+                    .collect::<Vec<_>>()
+            })
+            .collect::<Vec<_>>();
 
-            if !errors.is_empty() {
-                return Err(Error::ValidationSummary(errors));
-            }
+        if !errors.is_empty() {
+            return Err(Error::ValidationSummary(errors));
         }
         Ok(())
     }
@@ -131,16 +135,16 @@ fn is_connect_op(statement: &Statement) -> bool {
 
 lazy_static! {
     static ref VALID_IDENTITY_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
-        "iot:identity".into(),
-        "iot:device_id".into(),
-        "iot:module_id".into(),
-        "mqtt:client_id".into(),
+        "{{iot:identity}}".into(),
+        "{{iot:device_id}}".into(),
+        "{{iot:module_id}}".into(),
+        "{{mqtt:client_id}}".into(),
     ]);
     static ref VALID_RESOURCE_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
-        "iot:identity".into(),
-        "iot:device_id".into(),
-        "iot:module_id".into(),
-        "mqtt:client_id".into(),
-        "mqtt:topic".into()
+        "{{iot:identity}}".into(),
+        "{{iot:device_id}}".into(),
+        "{{iot:module_id}}".into(),
+        "{{mqtt:client_id}}".into(),
+        "{{mqtt:topic}}".into()
     ]);
 }

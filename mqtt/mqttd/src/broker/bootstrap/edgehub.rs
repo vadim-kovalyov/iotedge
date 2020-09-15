@@ -30,7 +30,10 @@ use mqtt_broker::{
     ServerCertificate,
 };
 use mqtt_edgehub::{
-    auth::{EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer},
+    auth::{
+        EdgeHubAuthenticator, EdgeHubAuthorizer, LocalAuthenticator, LocalAuthorizer,
+        PolicyAuthorizer,
+    },
     command::init_commands,
     command_handler::CommandHandler,
     connection::MakeEdgeHubPacketProcessor,
@@ -201,11 +204,10 @@ async fn start_sidecars(
     bridge.await?;
 
     let sidecars = tokio::spawn(async move {
-        let device_id = env::var(DEVICE_ID_ENV)?;
+        let device_id = "test";
         let commands: HashMap<String, Box<dyn Command + Send>> = init_commands();
         let command_handler =
-            CommandHandler::new(broker_handle, system_address, device_id.as_str(), commands)
-                .await?;
+            CommandHandler::new(broker_handle, system_address, device_id, commands).await?;
         let command_handler_shutdown_handle = command_handler.shutdown_handle()?;
 
         let command_handler_join_handle = tokio::spawn(command_handler.run());
