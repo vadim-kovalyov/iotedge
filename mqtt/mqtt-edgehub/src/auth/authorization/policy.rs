@@ -17,7 +17,7 @@ impl PolicyAuthorizer {
         let policy = PolicyBuilder::from_json(definition)
             .with_validator(MqttValidator)
             .with_matcher(MqttTopicFilterMatcher)
-            .with_substituter(MqttSubstituter)
+            .with_substituter(MqttSubstituter::new("asdf"))
             .with_default_decision(Decision::Denied)
             .build()?;
 

@@ -139,12 +139,14 @@ lazy_static! {
         "{{iot:device_id}}".into(),
         "{{iot:module_id}}".into(),
         "{{mqtt:client_id}}".into(),
+        "{{iot:this_device_id}}".into(),
     ]);
     static ref VALID_RESOURCE_VARIABLES: HashSet<String> = HashSet::from_iter(vec![
         "{{iot:identity}}".into(),
         "{{iot:device_id}}".into(),
         "{{iot:module_id}}".into(),
         "{{mqtt:client_id}}".into(),
-        "{{mqtt:topic}}".into()
+        "{{iot:this_device_id}}".into(),
+        "{{mqtt:topic}}".into(),
     ]);
 }

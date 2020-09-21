@@ -9,6 +9,7 @@ pub trait PolicyValidator {
     fn validate(&self, definition: &PolicyDefinition) -> Result<()>;
 }
 
+/// Provides basic validation that policy definition elements are not empty.
 #[derive(Debug)]
 pub struct DefaultValidator;
 
