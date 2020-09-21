@@ -1,12 +1,12 @@
-use std::any::Any;
-use std::{cell::RefCell, collections::HashMap};
+use std::{any::Any, cell::RefCell, collections::HashMap, convert::Infallible, fmt};
 
-use crate::command::ServiceIdentity;
+use serde::{Deserialize, Serialize};
+use tracing::debug;
+
 use mqtt_broker::{
     auth::{Activity, Authorization, Authorizer, Connect, Operation, Publish, Subscribe},
     AuthId, ClientId, ClientInfo,
 };
-use tracing::debug;
 
 #[derive(Debug)]
 pub struct EdgeHubAuthorizer<Z> {
@@ -201,6 +201,26 @@ where
             // TODO: fill in update method
         }
         Ok(())
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ServiceIdentity {
+    #[serde(rename = "Identity")]
+    identity: String,
+
+    #[serde(rename = "AuthChain")]
+    auth_chain: Option<String>,
+}
+
+impl fmt::Display for ServiceIdentity {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.auth_chain {
+            Some(auth_chain) => {
+                write!(f, "Identity: {}; Auth_Chain: {}", self.identity, auth_chain)
+            }
+            None => write!(f, "Identity: {}", self.identity),
+        }
     }
 }
 
