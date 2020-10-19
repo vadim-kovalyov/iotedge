@@ -120,7 +120,7 @@ namespace Microsoft.Azure.Devices.Edge.Hub.MqttBrokerAdapter
             /// <summary>
             /// A string that contains new policy definition in json format.
             /// </summary>
-            [JsonProperty]
+            [JsonProperty("definition")]
             public string Definition { get; }
         }
     }
